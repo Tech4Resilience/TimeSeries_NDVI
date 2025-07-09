@@ -1,0 +1,47 @@
+//filter the shapefile
+// var StudyArea = table.filter(ee.Filter.eq("ADM2_EN","Pabna"))
+
+Map.centerObject(StudyArea, 9);  // Center the map on the study area
+Map.addLayer(StudyArea)
+
+
+// Filter the L8 collection to a single month.
+var collection = ee.ImageCollection('LANDSAT/LC08/C02/T1_TOA')
+    .filterDate('2024-11-01', '2024-12-01');
+
+
+
+// Function to compute NDVI
+var NDVI = function(image) {
+  return image.normalizedDifference(['B5', 'B4']).rename('NDVI');
+};
+
+// Clip the image collection to the study area
+var clippedNDVI = collection.map(NDVI).mean().clip(StudyArea);
+
+// Shared visualization parameters
+var vis = {
+  min: 0,
+  max: 1,
+  palette: [
+      'FFFFFF', 'CE7E45', 'DF923D', 'F1B555', 'FCD163', '99B718',
+      '74A901', '66A000', '529400', '3E8601', '207401', '056201',
+      '004C00', '023B01', '012E01', '011D01', '011301'
+  ]
+   //palette: ['white', 'yellow', 'green', 'darkgreen']
+};
+
+// Add the clipped NDVI and SAVI to the map for visualization
+
+Map.addLayer(clippedNDVI, vis, 'Clipped NDVI');
+
+// Export the clipped NDVI as a TIFF file to Google Drive
+Export.image.toDrive({
+  image: clippedNDVI,
+  description: 'Clipped_NDVI_StudyArea',
+  scale: 30,  // Set appropriate scale (resolution)
+  region: StudyArea,  // Define the region of interest
+  fileFormat: 'GeoTIFF',
+  folder: 'TimeSeries_NDVI'  // Folder in Google Drive to save the image
+});
+
